@@ -64,4 +64,3 @@ Verify secondary headings contain
 
     Should Be Equal    ${expected_secondary_headings}    ${actual_secondary_headings}
 # robot -d results    Tests/crm.robot
-
