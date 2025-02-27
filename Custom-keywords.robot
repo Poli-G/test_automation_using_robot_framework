@@ -2,15 +2,14 @@
 Library             Collections
 Library             Browser
 
-#    Go to wikipedia
+Suite Setup         Setup Browser
+Suite Teardown      Close Browser
 Test Setup          Go to wikipedia
-Test Teardown       Close browser
+Test Teardown       Close Page
 
 
 *** Test Cases ***
 Test Case1
-    Go to wikipedia
-
     Perform search
 
     Verify heading
@@ -18,11 +17,12 @@ Test Case1
     Verify secondary headings contain
 
 
-
 *** Keywords ***
-Go to wikipedia
-    New Browser    chromium
+Setup Browser
+    New Browser    chromium    headless=False
     New Context
+
+Go to wikipedia
     New Page    https://www.wikipedia.org/
     Set Browser Timeout    30s
 
@@ -31,38 +31,43 @@ Perform search
     Click    xpath=//*[@id="search-form"]/fieldset/button
 
 Verify heading
-    # Verify heading    expected_heading=Steve Jobs
-
-    Get Text    id=firstHeading    should be    Steve Jobs
+    ${heading} =    Get Text    id=firstHeading
+    Should Be Equal    ${heading}    Steve Jobs
 
 Verify secondary headings contain
-    @{expecte_secondary_headings} =    Create list
+    # Define expected secondary headings
+    @{expected_secondary_headings} =    Create List
     ...    Early life
     ...    1974–1985
     ...    Health problems
     ...    Innovations and designs
     ...    Personal life
     ...    Honors and awards
- #-----------------------------
 
-    @{h2_elements} =    Create List
-    ...    Get Elements
-    ...    //div[@id='mw-content-text']//class='mw-heading mw-heading2'
+    # Get all H2 elements
+    # Wait For Elements State    //div[@id='mw-content-text']//h2    visible    timeout=10s
+    @{h2_elements} =    Get Elements    //div[@id='mw-content-text']//h2
 
-    Log To Console    @{h2_elements}
+    # Ensure `h2_elements` is a list before checking its length
+    ${h2_elements_length} =    Get Length    ${h2_elements}
+    Should Be True    ${h2_elements_length} > 0    No headings found!
 
-    @{actual_secondary_headings} =    Create List
+    # Initialize the actual_secondary_headings list
+    ${actual_secondary_headings} =    Create List
 
-    # Iterate through the h2 elements and add them to the list of actual headings
+    # Extract text from each H2 element
     FOR    ${h2_element}    IN    @{h2_elements}
         ${text} =    Get Text    ${h2_element}
-        Log To Console    ${h2_element}
-
-        Append To List    @{actual_secondary_headings}    ${text}
+        Append To List    ${actual_secondary_headings}    ${text}
     END
 
-    # List comparison
+    # Debug: Print actual headings
+    Log To Console    Actual Secondary Headings: ${actual_secondary_headings}
 
-    Should Be Equal    @{expecte_secondary_headings}    @{actual_secondary_headings}
+    # Compare each expected heading to actual headings
+    FOR    ${expected_heading}    IN    @{expected_secondary_headings}
+        Log To Console    Checking: ${expected_heading}
+        Should Contain    ${actual_secondary_headings}    ${expected_heading}
+    END
 
-#    robot -d results    Custom-keywords.robot
+    # robot Custom-keywords.robot
